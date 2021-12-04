@@ -31,11 +31,11 @@ if __name__ == "__main__":
         height = np.empty((0, gcps.shape[0]))
         raw_data = digitizing_point(img_mat=img, height_value=height)
         np.savetxt('raw_data.txt', raw_data)
-        raw_data = np.loadtxt('raw_data.txt')
+        raw_data = np.loadtxt('raw_data_20.txt')
 
     # *************** Get 5 Personal Raw points *******************
-    if os.path.isfile('personal_raw_data2.txt'):
-        personal_raw_data = np.loadtxt('personal_raw_data2.txt')
+    if os.path.isfile('personal_raw_data_20.txt'):
+        personal_raw_data = np.loadtxt('personal_raw_data_20.txt')
     else:
         print('\nUse right click to add point,\n '
               'Backspace to delete worng point and\n '
@@ -77,8 +77,10 @@ if __name__ == "__main__":
     # *************** Plot 3D: Personal Points and GCPs *******************
     plt.figure(1)
     ax = plt.axes(projection='3d')
-    ax.scatter3D(full_dataset[:10, 0], full_dataset[:10, 1], full_dataset[:10, 2], marker='^', cmap='Reds', s=300, label='GCPs')
-    ax.scatter3D(full_dataset[10:15, 0], full_dataset[10:15, 1], full_dataset[10:15, 2], marker='o', cmap='Reds', s=300, label='Personal Points')
+    ax.scatter3D(full_dataset[:10, 0], full_dataset[:10, 1], full_dataset[:10, 2], marker='^', cmap='Reds', s=300,
+                 label='GCPs')
+    ax.scatter3D(full_dataset[10:15, 0], full_dataset[10:15, 1], full_dataset[10:15, 2], marker='o', cmap='Reds', s=300,
+                 label='Personal Points')
     ax.set_xlabel('$x$', fontsize=30)
     ax.set_ylabel('$y$', fontsize=30)
     ax.set_zlabel('$z$', fontsize=30)
@@ -90,25 +92,36 @@ if __name__ == "__main__":
     xgrid = np.linspace(-50, 1100, 50)
     ygrid = np.linspace(0, 1200, 50)
     x, y = np.meshgrid(xgrid, ygrid)
-    z = [a_mat_quadratic(np.array([[x[j], y[j]]])).dot(x_cap_quad[1]).tolist() for j in range(len(ygrid))]
+    z = np.array([a_mat_quadratic([[x[j][i], y[j][i]]]).dot(x_cap_quad[1]) for j in np.arange(ygrid.shape[0])
+                  for i in np.arange(xgrid.shape[0])])
     ax = plt.axes(projection='3d')
-    ax.plot_surface(x.reshape(50, 50), y.reshape(50, 50), np.array(z).reshape(50, 50),
+    ax.plot_surface(x.reshape(50, 50), y.reshape(50, 50), z.reshape(50, 50), rstride=1, cstride=1,
                     cmap='viridis', edgecolor='none')
-    ax.scatter3D(full_dataset[:, 0], full_dataset[:, 1], full_dataset[:, 2], c=full_dataset[:, 2], cmap='Reds')
-    ax.set_title('surface')
-    plt.show()
+    ax.scatter3D(full_dataset[:10, 0], full_dataset[:10, 1], full_dataset[:10, 2], marker='^', cmap='Reds', s=300,
+                 label='GCPs')
+    ax.scatter3D(full_dataset[10:15, 0], full_dataset[10:15, 1], full_dataset[10:15, 2], marker='o', cmap='Reds', s=300,
+                 label='Personal Points')
+    ax.set_xlabel('$x$', fontsize=30)
+    ax.set_ylabel('$y$', fontsize=30)
+    ax.set_zlabel('$z$', fontsize=30)
+    ax.set_title('Plot 3D Surface, Quadratic Polynomial', fontsize=30)
+    plt.legend(loc='upper left', numpoints=1, ncol=3, fontsize=30, bbox_to_anchor=(0, 0))
 
+    # *************** Height Profile *******************
     plt.figure(3)
     x_height = np.linspace(5, 770, 120)
     y_height = np.linspace(82, 362, 120)
     z_height = []
     dist = []
     d = np.sqrt((x_height[0] - x_height[1]) ** 2 + (y_height[0] - y_height[1]) ** 2)
-    for i in range(1, len(x_height)):
-        z_height.append(a_mat_quadratic([[x_height[i], y_height[i]]]).dot(x_cap_quad[1]).tolist())
-        dist.append(d * i)
-    plt.plot(dist, z_height, 'b-')
-    plt.xlabel('t')
-    plt.ylabel('s')
+    z_height = np.empty((0, 1))
+    dist = np.empty((0, 1))
+    for i in np.arange(1, x_height.shape[0]):
+        z_height = np.append(z_height, a_mat_quadratic([[x_height[i], y_height[i]]]).dot(x_cap_quad[1]))
+        dist = np.append(dist, np.array([d * i]))
+    plt.plot(dist, z_height, 'b-', dist[0], z_height[0], 'ro', dist[-1], z_height[-1], 'go', markersize=10)
+    plt.xlabel('Distance')
+    plt.ylabel('Height')
+    plt.title('Height Profile', fontsize=30)
+    plt.legend(['Height Profile', 'Corner 1', 'Tor'])
     plt.show()
-
